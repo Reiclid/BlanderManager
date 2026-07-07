@@ -1,0 +1,68 @@
+* {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+body {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+}
+
+header {
+  background-color: rgb(218, 218, 218);
+  height: 90px;
+  border-radius: 3rem;
+  margin-top: 20px;
+  width: 97%;
+}
+
+main {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(233, 233, 233, 0);
+
+  padding: 0 30px;
+  margin-top: 50px;
+}
+
+.model-item {
+  width: 300px;
+  height: 400px; /* Трохи більше, щоб знизу помістився текст */
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 3rem;
+  
+  /* ЦІ ДВА РЯДКИ ВСЕ ВИПРАВЛЯЮТЬ: */
+  overflow: hidden;
+  position: relative;
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Стилізуємо сам 3D холст, який створив Three.js */
+.model-item canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.model-item p {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+  color: black;
+  font-weight: bold;
+  font-family: sans-serif;
+  width: 100%;
+}
+
+footer {
+  height: 0px;
+}
