@@ -7,36 +7,28 @@ interface ModelData {
 }
 
 export class CardModel {
-  // Використовуємо eagers або стандартний glob. 
-  // Object.keys поверне масив відносних шляхів, наприклад: ['/src/assets/models/Fish.fbx']
   private main = document.querySelector('main');
   private models = Object.keys(import.meta.glob('/src/assets/models/*.fbx'));
 
   constructor() {
-    // Автоматично запускаємо створення карток при ініціалізації класу
     this.initCards();
   }
 
   private init3Dscene(linkModel: string, card: HTMLDivElement) {
-    // 1. Розміри для рендерера беремо з картки (наприклад, задані через CSS)
-    // Якщо картка ще не в DOM, задамо базовий розмір (наприклад, 300x300)
     const width = 300;
     const height = 300;
 
-    // 2. Сцена, камера і рендерер
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xeeeeee);
 
-    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-    camera.position.set(0, 1, 15);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+    camera.position.set(0, 0, 30);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
 
-    // Додаємо canvas всередину картки
     card.appendChild(renderer.domElement);
 
-    // 3. Освітлення
     const light = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(light);
 
@@ -44,23 +36,48 @@ export class CardModel {
     dirLight.position.set(10, 20, 15);
     scene.add(dirLight);
 
-    // 4. Завантаження FBX
     const loader = new FBXLoader();
     let loadedModel: THREE.Group | null = null;
 
     loader.load(
       linkModel,
-      (fbx: THREE.Group) => { // Додали : THREE.Group
-        fbx.scale.set(0.1, 0.1, 0.1);
-        const box = new THREE.Box3().setFromObject(fbx);
-        const center = box.getCenter(new THREE.Vector3());
-        fbx.position.sub(center);
+      (fbx: THREE.Group) => {
+        const modelGroup = new THREE.Group();
 
-        scene.add(fbx);
-        loadedModel = fbx;
-        console.log(`Модель ${linkModel} успішно завантажена!`);
+        fbx.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child.clone() as THREE.Mesh;
+            modelGroup.add(mesh);
+          }
+        });
+
+        if (modelGroup.children.length === 0) {
+          console.error(`У файлі ${linkModel} не знайдено 3D-геометрії (Mesh)`);
+          scene.add(fbx);
+          return;
+        }
+
+        const box = new THREE.Box3().setFromObject(modelGroup);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        modelGroup.children.forEach((child) => {
+          if (child instanceof THREE.Object3D) {
+            child.position.sub(center);
+          }
+        });
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const desiredSize = 18;
+        const scaleFactor = desiredSize / maxDim;
+        modelGroup.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+        scene.add(modelGroup);
+        loadedModel = modelGroup as any;
+
+        console.log(`Модель ${linkModel} успішно завантажена разом із текстурами та відцентрована!`);
       },
-      (xhr: ProgressEvent) => { // Додали : ProgressEvent
+      (xhr: ProgressEvent) => {
         if (xhr.total > 0) {
           console.log(`${linkModel}: ${(xhr.loaded / xhr.total * 100).toFixed(0)}% завантажено`);
         }
@@ -70,11 +87,9 @@ export class CardModel {
       }
     );
 
-    // 5. Цикл анімації (для кожної картки свій)
     const animate = () => {
       requestAnimationFrame(animate);
 
-      // Якщо модель завантажилась — плавно крутимо її
       if (loadedModel) {
         loadedModel.rotation.y += 0.01;
       }
@@ -92,12 +107,10 @@ export class CardModel {
       const block = document.createElement('div');
       block.className = 'model-item';
 
-      // Створюємо заголовок з назвою файлу
       const title = document.createElement('p');
       title.textContent = modelPath.split('/').pop() || 'Модель';
       block.appendChild(title);
 
-      // Ініціалізуємо 3D сцену всередині цього блоку
       this.init3Dscene(modelPath, block);
 
       this.main.appendChild(block);
@@ -105,5 +118,4 @@ export class CardModel {
   }
 }
 
-// Запуск:
 new CardModel();
